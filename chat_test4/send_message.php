@@ -3,8 +3,8 @@
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-$accessKey = '661b221782915c8bc762';
-$accessSecret = '3580f8e89e85879c260ab394d1779035';
+$accessKey = 'myAccessKey';
+$accessSecret = 'myAccessSecret';
 
 // POSTリクエストからデータを受け取る
 $data = json_decode(file_get_contents('php://input'), true);
@@ -65,8 +65,8 @@ $messageUrl = "https://api.channel.io/open/v5/user-chats/{$userChatId}/messages"
 // ヘッダーとデータの設定
 $headers = [
     'Content-Type: application/json',
-    'X-Access-Key: ' . $accessKey, // 修正: $apiKey -> $accessKey
-    'X-Access-Secret: ' . $accessSecret, // 修正: $apiSecret -> $accessSecret
+    'X-Access-Key: ' . $accessKey,
+    'X-Access-Secret: ' . $accessSecret,
 ];
 $postData = json_encode([
     'blocks' => [
