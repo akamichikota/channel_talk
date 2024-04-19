@@ -1,0 +1,102 @@
+<?php
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+include 'file_session_handler.php';  // Include the session handler script
+
+header('Content-Type: application/json');
+session_start();
+
+$data = json_decode(file_get_contents('php://input'), true);
+$response = ['success' => false, 'message' => 'No action specified'];
+
+function inviteManager($userChatId) {
+    // ここで実際のマネージャー招待処理を実装する
+    // 仮の成功を返す
+    return ['success' => true];  
+}
+
+if (isset($data['action'])) {
+    switch ($data['action']) {
+        case 'start':
+            if (!isset($data['userId'])) {
+                $response = ['success' => false, 'message' => 'User ID is required'];
+            } else {
+                $userId = $data['userId'];
+                $accessKey = '661b221782915c8bc762';
+                $accessSecret = '3580f8e89e85879c260ab394d1779035';
+                $userChatsUrl = "https://api.channel.io/open/v5/users/{$userId}/user-chats";
+
+                $ch = curl_init();
+                curl_setopt_array($ch, [
+                    CURLOPT_URL => $userChatsUrl,
+                    CURLOPT_HTTPHEADER => [
+                        'Content-Type: application/json',
+                        'X-Access-Key: ' . $accessKey,
+                        'X-Access-Secret: ' . $accessSecret
+                    ],
+                    CURLOPT_POST => true,
+                    CURLOPT_POSTFIELDS => json_encode([]),
+                    CURLOPT_RETURNTRANSFER => true
+                ]);
+
+                $chatResponse = curl_exec($ch);
+                if (!$chatResponse) {
+                    $response = ['error' => true, 'message' => 'cURL Error: ' . curl_error($ch)];
+                    curl_close($ch);
+                    break;
+                }
+
+                $chatDecoded = json_decode($chatResponse, true);
+                curl_close($ch);
+
+                if (!isset($chatDecoded['userChat']['id'])) {
+                    $response = ['error' => true, 'message' => 'Failed to create chat session or retrieve chat ID'];
+                    break;
+                }
+
+                $userChatId = $chatDecoded['userChat']['id'];
+                $inviteResponse = inviteManager($userChatId);
+
+                if (!$inviteResponse['success']) {
+                    $response = $inviteResponse;
+                } else {
+                    $sessionResponse = startFileSession($userId, $userChatId);
+                    if ($sessionResponse['success']) {
+                        $notifyResponse = notifyChannelTalk($sessionResponse['session_id'], $userChatId, "アンケートが開始されました。");
+                        if ($notifyResponse['success']) {
+                            $response = ['success' => true, 'message' => 'Survey started and manager notified'];
+                        } else {
+                            $response = ['error' => true, 'message' => 'Failed to notify the start of the survey'];
+                        }
+                    } else {
+                        $response = $sessionResponse;
+                    }
+                }
+            }
+            break;
+        // 他のcaseは上記と同様に適切に処理
+        case 'update':
+            if (!isset($data['session_id'], $data['step'])) {
+                $response = ['success' => false, 'message' => 'Session ID and step are required'];
+            } else {
+                $sessionId = $data['session_id'];
+                $step = $data['step'];
+                $response = updateFileSession($sessionId, $step);
+            }
+            break;
+        case 'end':
+            if (!isset($data['session_id'])) {
+                $response = ['success' => false, 'message' => 'Session ID is required for ending a session'];
+            } else {
+                $sessionId = $data['session_id'];
+                $response = endFileSession($sessionId);
+            }
+            break;
+        default:
+            $response = ['success' => false, 'message' => 'Invalid action'];
+    }
+}
+
+echo json_encode($response);
+?>
