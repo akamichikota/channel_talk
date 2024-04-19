@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
     async function bootChannel() {
         return new Promise((resolve, reject) => {
             ChannelIO('boot', {
-                pluginKey: '748abef7-08de-4b43-a36d-6784199afd77', // 実際のプラグインキーに置き換えてください
+                pluginKey: 'myPluginKey', // 実際のプラグインキーに置き換えてください
                 memberId: memberId
             }, function onBoot(error, user) {
                 if (error) {
